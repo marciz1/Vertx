@@ -1,0 +1,101 @@
+buildscript {
+    ext {
+        kotlinVersion = '1.2.51'
+        vertxVersion = '3.5.3'
+        guiceVersion = '4.1.0'
+        logbackVersion = "1.2.1"
+        javassistVersion = "3.22.0-GA"
+        newRelicVersion = "3.47.0"
+        kotlinLoggingVersion = "1.4.6"
+        pearsonVertxConsulVersion = '1.3.0'
+        msgPackVersion = '0.8.14'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+plugins {
+    id 'java'
+    id "org.jetbrains.kotlin.jvm" version '1.2.51'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '2.0.2'
+}
+
+apply plugin: 'kotlin'
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+group 'com.pearson.group'
+mainClassName = 'com.pearson.group.CustomLauncher'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+ext.revision = "git rev-parse --short HEAD".execute().text.trim()
+version project.getVersion() != project.DEFAULT_VERSION ? project.getVersion() : '1.8-SNAPSHOT'
+
+processResources {
+    filesMatching('build-info.properties') {
+        expand(project.properties)
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'http://url.ioki.pl/artifactory/list/libs-release-local/' }
+    maven { url 'http://url.ioki.pl/artifactory/list/libs-snapshot-local/' }
+}
+
+dependencies {
+    compile "org.javassist:javassist:$javassistVersion"
+    compile "io.vertx:vertx-core:$vertxVersion"
+    compile "io.vertx:vertx-web-client:$vertxVersion"
+    compile "io.vertx:vertx-web:$vertxVersion"
+    compile "io.vertx:vertx-mongo-client:$vertxVersion"
+    compile("io.vertx:vertx-kafka-client:$vertxVersion") {
+        exclude group: 'org.slf4j'
+        exclude group: 'log4j'
+    }
+    compile "org.msgpack:msgpack-core:$msgPackVersion"
+    compile "com.google.inject:guice:$guiceVersion"
+    compile "ch.qos.logback:logback-classic:$logbackVersion"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-runtime:$kotlinVersion"
+    compile "com.pearson:vertx-consul:$pearsonVertxConsulVersion"
+    compile "com.newrelic.agent.java:newrelic-api:$newRelicVersion"
+    compile "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
+
+    testCompile "io.vertx:vertx-unit:$vertxVersion"
+    testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:2.0.0"
+    testCompile "junit:junit:4.12"
+    testCompile "pl.pragmatists:JUnitParams:1.1.0"
+    testCompile "org.assertj:assertj-core:3.8.0"
+}
+
+shadowJar {
+    classifier = ''
+    manifest {
+        attributes 'Main-Verticle': 'com.pearson.group.MainVerticle'
+    }
+    mergeServiceFiles {
+        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
+    }
+}
+
+wrapper {
+    gradleVersion = '4.5'
+}
+
+build.dependsOn shadowJar
